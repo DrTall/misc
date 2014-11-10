@@ -13,6 +13,7 @@ to black, giving a hint as to how long ago you were last at your desk.
 """
 __author__ = 'Sean Fellows'
 
+import argparse
 from datetime import datetime
 from datetime import timedelta
 import sys
@@ -20,16 +21,21 @@ import select
 import subprocess
 import time
 
+parser = argparse.ArgumentParser(description='Controls a blink1 via the blink1-tool commandline.')
+parser.add_argument('--device_num', type=str, help='which blink1 to control, or "all"')
+args = parser.parse_args()
+
 POMODORO_DURATION = timedelta(minutes=30)
 SCREENSAVER_FADE_DURATION = timedelta(minutes=10)
 
 # Holy hacks batman...
 screensaver_time = None
 
-def doit(args, check_screensaver=True, debug_screensaver=False):
+def doit(blink1_args, check_screensaver=True, debug_screensaver=False):
+  global args
   if check_screensaver and off_when_screensaver(debug_screensaver):
     return
-  subprocess.call(['./blink1-tool ' + args] , shell=True)
+  subprocess.call(['./blink1-tool -d %s ' % args.device_num + blink1_args] , shell=True)
 
 def off_when_screensaver(debug_screensaver):
   global screensaver_time
