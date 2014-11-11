@@ -28,7 +28,6 @@ parser.add_argument('--device_num', type=str, help='which blink1 to control, or 
 args = parser.parse_args()
 
 POMODORO_DURATION = timedelta(minutes=30)
-SCREENSAVER_FADE_DURATION = timedelta(minutes=10)
 
 # Holy hacks batman...
 screensaver_time = None
