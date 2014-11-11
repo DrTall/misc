@@ -16,10 +16,12 @@ __author__ = 'Sean Fellows'
 import argparse
 from datetime import datetime
 from datetime import timedelta
+import functools
 import sys
 import select
-import subprocess
 import time
+
+import blink1_tool_tool
 
 parser = argparse.ArgumentParser(description='Controls a blink1 via the blink1-tool commandline.')
 parser.add_argument('--device_num', type=str, help='which blink1 to control, or "all"')
@@ -31,35 +33,10 @@ SCREENSAVER_FADE_DURATION = timedelta(minutes=10)
 # Holy hacks batman...
 screensaver_time = None
 
-def doit(blink1_args, check_screensaver=True, debug_screensaver=False):
-  global args
-  if check_screensaver and off_when_screensaver(debug_screensaver):
-    return
-  subprocess.call(['./blink1-tool -d %s ' % args.device_num + blink1_args] , shell=True)
-
-def off_when_screensaver(debug_screensaver):
-  global screensaver_time
-  if (not subprocess.call(['ps -e | grep \'ScreenSaverEngine\|LockScreen\' | grep -v grep'] , shell=True) or
-      subprocess.call(['ioreg -w 0 -c IODisplayWrangler -r IODisplayWrangler | grep CurrentPowerState\\"=4'] , shell=True)):
-    if not screensaver_time:
-      screensaver_time = datetime.now()
-    v = 255 - int(255.0 * (datetime.now() - screensaver_time).total_seconds() / SCREENSAVER_FADE_DURATION.total_seconds())
-    if v < 0:
-      print 'screensaving --off'
-      doit('--off', check_screensaver=False)
-    else:
-      print 'screensaving %s' % v
-      doit('--hsb 180,255,%s' % v, check_screensaver=False)
-    return True
-  elif debug_screensaver:
-    print 'screensaving disabled'
-    subprocess.call(['ioreg -w 0 -c IODisplayWrangler -r IODisplayWrangler'] , shell=True)
-  screensaver_time = None
-  return False
-
+set_blink1 = functools.partial(blink1_tool_tool.set_blink1, device_num=args.device_num)
 
 while True:
-  doit('--green')
+  set_blink1('--green')
   ins = select.select( [sys.stdin], [], [], 3 )
   if not any(ins):
     continue
@@ -70,7 +47,7 @@ while True:
   i = 0
   while datetime.now() < finish:
     i += 1
-    doit('--red')
+    set_blink1('--red')
     to_go = finish - datetime.now()
     print 'pomodor %s' % to_go
     speed = int(1500 * (to_go).total_seconds() / POMODORO_DURATION.total_seconds())
@@ -79,11 +56,11 @@ while True:
         speed = 300
       #print 'fancy speed %s' % speed
       if to_go < timedelta(minutes=5):
-        doit('--yellow -m %s' % speed)
+        set_blink1('--yellow -m %s' % speed)
       else:
-        doit('--off -m %s' % speed)
+        set_blink1('--off -m %s' % speed)
       time.sleep(speed / 1000.0)
-      doit('--red -m %s' % speed)
+      set_blink1('--red -m %s' % speed)
       time.sleep(speed / 1000.0)
     else:
       time.sleep(1)
